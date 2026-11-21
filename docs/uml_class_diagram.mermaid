@@ -1,0 +1,112 @@
+classDiagram
+    direction TB
+
+    class Date {
+        -int d
+        -int m
+        -int y
+        +isValid(d, m, y) bool$
+        +today() Date$
+        +parse(s, out) bool$
+        +toString() string
+        +operator==(o) bool
+    }
+
+    class User {
+        -string username
+        -string password
+        -string fullName
+        -string email
+        +checkPassword(p) bool
+        +setPassword(p)
+        +setFullName(f)
+        +setEmail(e)
+        +display()
+        +serialize() string
+        +deserialize(line, u) bool$
+    }
+
+    class UserManager {
+        -vector~User~ users
+        +load()
+        +save()
+        +find(username) User*
+        +registerUser(...) bool
+        +login(username, pass) User*
+    }
+
+    class Transaction {
+        <<abstract>>
+        #int id
+        #long long amount
+        #string category
+        #string note
+        #Date date
+        +getType() string*
+        +getCode() char*
+        +display()
+        +serialize() string
+    }
+
+    class Income {
+        +getType() string
+        +getCode() char
+    }
+
+    class Expense {
+        +getType() string
+        +getCode() char
+    }
+
+    class Budget {
+        -long long limit
+        -double warnRatio
+        +setLimit(l)
+        +check(spent) Status
+        +remaining(spent) long long
+    }
+
+    class TransactionManager {
+        -vector~unique_ptr~Transaction~~ items
+        -Budget budget
+        -int nextId
+        +add(isIncome, amount, cat, date, note)
+        +findById(id) Transaction*
+        +remove(id) bool
+        +total(income) long long
+        +totalInMonth(income, m, y) long long
+        +list()
+        +save()
+        +load()
+    }
+
+    class Statistics {
+        -TransactionManager& mgr
+        +byDay(d)
+        +byMonth(m, y)
+        +byCategory(m, y)
+        +report()
+    }
+
+    class App {
+        -UserManager userMgr
+        -User* current
+        -unique_ptr~TransactionManager~ mgr
+        +run()
+        -mainMenu()
+        -budgetMenu()
+        -statsMenu()
+        -accountMenu()
+    }
+
+    Transaction <|-- Income
+    Transaction <|-- Expense
+    Transaction *-- Date : có
+    TransactionManager "1" o-- "*" Transaction : quản lý
+    TransactionManager *-- Budget : có
+    UserManager "1" o-- "*" User : quản lý
+    Statistics ..> TransactionManager : dùng
+    App *-- UserManager
+    App o-- User : đăng nhập
+    App *-- TransactionManager
+    App ..> Statistics : tạo

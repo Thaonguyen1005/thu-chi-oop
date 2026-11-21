@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thu chi cá nhân</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F2F4F8;--sf:#fff;--tx:#1B2333;--mu:#667085;--ln:#E1E5EC;--ac:#2B50E0;--acx:#fff;--inc:#17855A;--exp:#D2412F;--warn:#B7791F;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181F;--sf:#1C222C;--tx:#E6EAF2;--mu:#8D98AB;--ln:#2B3340;--ac:#6C8CFF;--acx:#10131A;--inc:#4CC38A;--exp:#FF7A6B;--warn:#F0B64A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181F;--sf:#1C222C;--tx:#E6EAF2;--mu:#8D98AB;--ln:#2B3340;--ac:#6C8CFF;--acx:#10131A;--inc:#4CC38A;--exp:#FF7A6B;--warn:#F0B64A;color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Be Vietnam Pro",system-ui,"Segoe UI",Arial,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}
+p.sub{color:var(--mu);margin:0 0 20px}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:16px;margin-bottom:16px}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);padding:8px 14px}
+button.pri{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:500}
+button.lnk{border:0;background:none;color:var(--ac);padding:4px 6px}
+button.del{color:var(--exp)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.nav{display:flex;gap:4px;border-bottom:1px solid var(--ln);margin-bottom:16px;overflow-x:auto}
+.nav button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--mu);white-space:nowrap}
+.nav button.on{color:var(--tx);border-color:var(--ac);font-weight:500}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.sum div{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:12px}
+.sum small{color:var(--mu);display:block}.sum b{font-size:18px}
+.inc{color:var(--inc)}.exp{color:var(--exp)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--ln)}th{color:var(--mu);font-weight:500;font-size:13px}
+td.n,th.n{text-align:right;white-space:nowrap}
+.banner{padding:10px 14px;border-radius:8px;margin-bottom:16px;border:1px solid var(--warn);color:var(--warn)}
+.banner.over{border-color:var(--exp);color:var(--exp)}
+.bar{height:10px;background:var(--ln);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.bar i.near{background:var(--warn)}.bar i.over{background:var(--exp)}
+.cat{display:grid;grid-template-columns:110px 1fr 120px;gap:8px;align-items:center;margin:8px 0}
+.cat span:last-child{text-align:right;font-size:13px}
+.msg{min-height:20px;color:var(--mu);font-size:13px;margin-top:8px}
+.tabs{display:flex;gap:8px;margin-bottom:8px}.tabs button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.empty{color:var(--mu);padding:12px 0}
+@media (max-width:520px){.cat{grid-template-columns:80px 1fr 90px}.sum b{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+/* ---------- Lưu trữ (localStorage, có dự phòng bộ nhớ tạm) ---------- */
+const mem = {};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); if (v) return JSON.parse(v); } catch (e) {} return k in mem ? JSON.parse(mem[k]) : d; },
+  set(k, v) { const s = JSON.stringify(v); mem[k] = s; try { localStorage.setItem(k, s); } catch (e) {} }
+};
+const fmt = n => Number(n).toLocaleString('vi-VN');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const dmy = s => s.split('-').reverse().join('/');
+
+/* ---------- Module 2: giao dịch (kế thừa + đa hình) ---------- */
+class Transaction {
+  constructor(id, amount, category, date, note) { Object.assign(this, { id, amount, category, date, note }); }
+  get type() { throw new Error('Lớp con phải cài đặt'); }
+  get label() { throw new Error('Lớp con phải cài đặt'); }
+  static from(o) { return o.type === 'income' ? new Income(o.id, o.amount, o.category, o.date, o.note) : new Expense(o.id, o.amount, o.category, o.date, o.note); }
+  toJSON() { return { type: this.type, id: this.id, amount: this.amount, category: this.category, date: this.date, note: this.note }; }
+}
+class Income extends Transaction { get type() { return 'income'; } get label() { return 'Thu'; } }
+class Expense extends Transaction { get type() { return 'expense'; } get label() { return 'Chi'; } }
+
+/* ---------- Module 3: ngân sách ---------- */
+class Budget {
+  constructor(limit = 0, warnRatio = 0.8) { this.limit = limit; this.warnRatio = warnRatio; }
+  check(spent) {
+    if (!this.limit) return 'none';
+    if (spent > this.limit) return 'over';
+    if (spent >= this.limit * this.warnRatio) return 'near';
+    return 'ok';
+  }
+  remaining(spent) { return this.limit - spent; }
+}
+
+class TransactionManager {
+  constructor(user) { this.key = 'tc_data_' + user; this.load(); }
+  load() {
+    const d = store.get(this.key, { items: [], limit: 0, next: 1 });
+    this.items = d.items.map(Transaction.from); this.next = d.next; this.budget = new Budget(d.limit);
+  }
+  save() { store.set(this.key, { items: this.items, limit: this.budget.limit, next: this.next }); }
+  add(type, amount, category, date, note) {
+    const C = type === 'income' ? Income : Expense;
+    this.items.push(new C(this.next++, amount, category, date, note)); this.save();
+  }
+  update(id, type, amount, category, date, note) {
+    const i = this.items.findIndex(t => t.id === id);
+    if (i >= 0) { const C = type === 'income' ? Income : Expense; this.items[i] = new C(id, amount, category, date, note); this.save(); }
+  }
+  remove(id) { this.items = this.items.filter(t => t.id !== id); this.save(); }
+  find(id) { return this.items.find(t => t.id === id); }
+  sorted() { return [...this.items].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id); }
+  total(type, prefix = '') { return this.items.filter(t => t.type === type && t.date.startsWith(prefix)).reduce((s, t) => s + t.amount, 0); }
+}
+
+/* ---------- Module 4: thống kê ---------- */
+class Statistics {
+  constructor(mgr) { this.mgr = mgr; }
+  byMonth(ym) { const i = this.mgr.total('income', ym), e = this.mgr.total('expense', ym); return { inc: i, exp: e, bal: i - e }; }
+  byDay(d) { return this.mgr.sorted().filter(t => t.date === d); }
+  byCategory(ym) {
+    const m = {};
+    this.mgr.items.filter(t => t.type === 'expense' && t.date.startsWith(ym)).forEach(t => m[t.category] = (m[t.category] || 0) + t.amount);
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  }
+}
+
+/* ---------- Module 1: người dùng ---------- */
+class UserManager {
+  get users() { return store.get('tc_users', {}); }
+  register(u, p, name, email) {
+    const us = this.users; u = u.trim();
+    if (!u || !p) return 'Cần nhập tên đăng nhập và mật khẩu.';
+    if (us[u]) return 'Tên đăng nhập đã tồn tại.';
+    us[u] = { password: p, fullName: name.trim() || u, email: email.trim() }; store.set('tc_users', us); return null;
+  }
+  login(u, p) { const x = this.users[u.trim()]; return x && x.password === p ? u.trim() : null; }
+  info(u) { return this.users[u]; }
+  update(u, fn) { const us = this.users; fn(us[u]); store.set('tc_users', us); }
+}
+
+/* ---------- Giao diện ---------- */
+class App {
+  constructor() { this.um = new UserManager(); this.user = null; this.tab = 'tx'; this.editId = null; this.ym = today().slice(0, 7); this.day = today(); this.mode = 'login'; this.render(); }
+  $(id) { return document.getElementById(id); }
+  v(id) { return this.$(id).value; }
+  say(t) { const m = this.$('msg'); if (m) m.textContent = t; }
+
+  render() { this.$('app').innerHTML = this.user ? this.main() : this.auth(); }
+
+  auth() {
+    const reg = this.mode === 'register';
+    return `<div style="max-width:420px;margin:40px auto"><h1>Thu chi cá nhân</h1>
+    <p class="sub">Ghi lại từng khoản thu, từng khoản chi và biết tháng này còn lại bao nhiêu.</p>
+    <div class="card"><div class="tabs">
+      <button class="${reg ? '' : 'on'}" onclick="app.setMode('login')">Đăng nhập</button>
+      <button class="${reg ? 'on' : ''}" onclick="app.setMode('register')">Đăng ký</button></div>
+      <label for="a-u">Tên đăng nhập</label><input id="a-u" autocomplete="username">
+      <label for="a-p">Mật khẩu</label><input id="a-p" type="password" autocomplete="current-password">
+      ${reg ? `<label for="a-n">Họ tên</label><input id="a-n"><label for="a-e">Email</label><input id="a-e" type="email">` : ''}
+      <div style="margin-top:14px"><button class="pri" onclick="app.${reg ? 'doRegister' : 'doLogin'}()">${reg ? 'Tạo tài khoản' : 'Đăng nhập'}</button></div>
+      <div class="msg" id="msg"></div></div>
+    <p class="sub" style="font-size:12px">Dữ liệu được lưu trong trình duyệt trên thiết bị này, không gửi lên máy chủ.</p></div>`;
+  }
+  setMode(m) { this.mode = m; this.render(); }
+  doRegister() {
+    const err = this.um.register(this.v('a-u'), this.v('a-p'), this.v('a-n'), this.v('a-e'));
+    if (err) return this.say(err);
+    this.mode = 'login'; this.render(); this.say('Đăng ký thành công. Hãy đăng nhập.');
+  }
+  doLogin() {
+    const u = this.um.login(this.v('a-u'), this.v('a-p'));
+    if (!u) return this.say('Sai tên đăng nhập hoặc mật khẩu.');
+    this.user = u; this.mgr = new TransactionManager(u); this.tab = 'tx'; this.render();
+  }
+  logout() { this.user = null; this.mgr = null; this.mode = 'login'; this.render(); }
+
+  banner() {
+    const ym = today().slice(0, 7), spent = this.mgr.total('expense', ym), b = this.mgr.budget, s = b.check(spent);
+    if (s === 'near') return `<div class="banner">Sắp vượt hạn mức: đã chi ${fmt(spent)} / ${fmt(b.limit)} đ, còn ${fmt(b.remaining(spent))} đ.</div>`;
+    if (s === 'over') return `<div class="banner over">Đã vượt hạn mức ${fmt(-b.remaining(spent))} đ (chi ${fmt(spent)} / ${fmt(b.limit)} đ).</div>`;
+    return '';
+  }
+  main() {
+    const tabs = [['tx', 'Giao dịch'], ['bd', 'Ngân sách'], ['st', 'Thống kê'], ['ac', 'Tài khoản']];
+    return `<div class="top"><div><h1>Thu chi cá nhân</h1><span class="sub">Xin chào, ${esc(this.um.info(this.user).fullName)}</span></div>
+      <button onclick="app.logout()">Đăng xuất</button></div>${this.banner()}
+      <div class="nav">${tabs.map(([k, n]) => `<button class="${this.tab === k ? 'on' : ''}" onclick="app.go('${k}')">${n}</button>`).join('')}</div>
+      ${{ tx: () => this.tx(), bd: () => this.bd(), st: () => this.st(), ac: () => this.ac() }[this.tab]()}`;
+  }
+  go(t) { this.tab = t; this.editId = null; this.render(); }
+
+  /* --- Giao dịch --- */
+  tx() {
+    const e = this.editId ? this.mgr.find(this.editId) : null, ym = today().slice(0, 7), S = new Statistics(this.mgr).byMonth(ym);
+    const cats = [...new Set(this.mgr.items.map(t => t.category))];
+    const rows = this.mgr.sorted().map(t => `<tr><td>${dmy(t.date)}</td><td class="${t.type === 'income' ? 'inc' : 'exp'}">${t.label}</td><td>${esc(t.category)}</td><td>${esc(t.note)}</td>
+      <td class="n ${t.type === 'income' ? 'inc' : 'exp'}">${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}</td>
+      <td class="n"><button class="lnk" onclick="app.edit(${t.id})">Sửa</button><button class="lnk del" onclick="app.del(${t.id})">Xóa</button></td></tr>`).join('');
+    return `<div class="sum"><div><small>Thu tháng này</small><b class="inc">${fmt(S.inc)}</b></div><div><small>Chi tháng này</small><b class="exp">${fmt(S.exp)}</b></div><div><small>Còn lại</small><b>${fmt(S.bal)}</b></div></div>
+    <div class="card"><h2>${e ? 'Sửa giao dịch' : 'Thêm giao dịch'}</h2><div class="row">
+      <div><label for="f-type">Loại</label><select id="f-type"><option value="expense" ${e && e.type === 'income' ? '' : 'selected'}>Chi</option><option value="income" ${e && e.type === 'income' ? 'selected' : ''}>Thu</option></select></div>
+      <div><label for="f-amt">Số tiền (đ)</label><input id="f-amt" type="number" min="1" value="${e ? e.amount : ''}"></div>
+      <div><label for="f-cat">Danh mục</label><input id="f-cat" list="cats" placeholder="Ăn uống, đi lại, lương..." value="${e ? esc(e.category) : ''}"><datalist id="cats">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+      <div><label for="f-date">Ngày</label><input id="f-date" type="date" value="${e ? e.date : today()}"></div></div>
+      <label for="f-note">Ghi chú</label><input id="f-note" value="${e ? esc(e.note) : ''}">
+      <div style="margin-top:14px;display:flex;gap:8px"><button class="pri" onclick="app.saveTx()">${e ? 'Lưu thay đổi' : 'Thêm giao dịch'}</button>${e ? '<button onclick="app.go(\'tx\')">Hủy</button>' : ''}</div><div class="msg" id="msg"></div></div>
+    <div class="card"><h2>Tất cả giao dịch</h2>${rows ? `<div class="tw"><table><tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Ghi chú</th><th class="n">Số tiền</th><th></th></tr>${rows}</table></div>` : '<div class="empty">Chưa có giao dịch. Thêm khoản đầu tiên ở form phía trên.</div>'}</div>`;
+  }
+  saveTx() {
+    const amt = Math.round(Number(this.v('f-amt'))), date = this.v('f-date');
+    if (!(amt > 0)) return this.say('Số tiền phải lớn hơn 0.');
+    if (!date) return this.say('Hãy chọn ngày.');
+    const cat = this.v('f-cat').trim() || 'Khác', type = this.v('f-type'), note = this.v('f-note').trim();
+    if (this.editId) this.mgr.update(this.editId, type, amt, cat, date, note); else this.mgr.add(type, amt, cat, date, note);
+    this.editId = null; this.render();
+  }
+  edit(id) { this.editId = id; this.render(); window.scrollTo(0, 0); }
+  del(id) { if (confirm('Xóa giao dịch này?')) { this.mgr.remove(id); this.render(); } }
+
+  /* --- Ngân sách --- */
+  bd() {
+    const ym = today().slice(0, 7), b = this.mgr.budget, spent = this.mgr.total('expense', ym), s = b.check(spent);
+    const pct = b.limit ? Math.min(100, Math.round(spent / b.limit * 100)) : 0;
+    const txt = { none: 'Chưa đặt hạn mức cho tháng này.', ok: `An toàn, còn ${fmt(b.remaining(spent))} đ.`, near: `Sắp vượt, chỉ còn ${fmt(b.remaining(spent))} đ.`, over: `Đã vượt ${fmt(-b.remaining(spent))} đ.` }[s];
+    return `<div class="card"><h2>Hạn mức chi tiêu mỗi tháng</h2>
+      <label for="b-l">Hạn mức (đ)</label><input id="b-l" type="number" min="0" value="${b.limit || ''}">
+      <div style="margin-top:14px"><button class="pri" onclick="app.saveBudget()">Lưu hạn mức</button></div><div class="msg" id="msg">Hệ thống cảnh báo khi chi từ 80% hạn mức trở lên.</div></div>
+    <div class="card"><h2>Tháng ${ym.slice(5)}/${ym.slice(0, 4)}</h2><div class="bar"><i class="${s}" style="width:${pct}%"></i></div>
+      <p>Đã chi <b>${fmt(spent)}</b> đ${b.limit ? ` / ${fmt(b.limit)} đ (${Math.round(spent / b.limit * 100)}%)` : ''}. ${txt}</p></div>`;
+  }
+  saveBudget() { this.mgr.budget.limit = Math.max(0, Math.round(Number(this.v('b-l')) || 0)); this.mgr.save(); this.render(); this.say('Đã lưu hạn mức.'); }
+
+  /* --- Thống kê --- */
+  st() {
+    const S = new Statistics(this.mgr), m = S.byMonth(this.ym), cats = S.byCategory(this.ym), max = cats.length ? cats[0][1] : 1, total = m.exp || 1;
+    const day = S.byDay(this.day);
+    return `<div class="card"><h2>Theo tháng</h2><label for="s-m">Chọn tháng</label><input id="s-m" type="month" value="${this.ym}" onchange="app.setYm(this.value)">
+      <div class="sum" style="margin:14px 0 0"><div><small>Tổng thu</small><b class="inc">${fmt(m.inc)}</b></div><div><small>Tổng chi</small><b class="exp">${fmt(m.exp)}</b></div><div><small>Số dư</small><b>${fmt(m.bal)}</b></div></div></div>
+    <div class="card"><h2>Chi tiêu theo danh mục</h2>${cats.length ? cats.map(([c, v]) => `<div class="cat"><span>${esc(c)}</span><div class="bar"><i style="width:${Math.round(v / max * 100)}%"></i></div><span>${fmt(v)} (${Math.round(v / total * 100)}%)</span></div>`).join('') : '<div class="empty">Tháng này chưa có khoản chi.</div>'}</div>
+    <div class="card"><h2>Theo ngày</h2><label for="s-d">Chọn ngày</label><input id="s-d" type="date" value="${this.day}" onchange="app.setDay(this.value)">
+      ${day.length ? `<div class="tw"><table>${day.map(t => `<tr><td class="${t.type === 'income' ? 'inc' : 'exp'}">${t.label}</td><td>${esc(t.category)}</td><td>${esc(t.note)}</td><td class="n">${fmt(t.amount)}</td></tr>`).join('')}</table></div>` : '<div class="empty">Không có giao dịch trong ngày này.</div>'}</div>`;
+  }
+  setYm(v) { if (v) { this.ym = v; this.render(); } }
+  setDay(v) { if (v) { this.day = v; this.render(); } }
+
+  /* --- Tài khoản --- */
+  ac() {
+    const i = this.um.info(this.user);
+    return `<div class="card"><h2>Thông tin cá nhân</h2><p class="sub" style="margin:0">Tên đăng nhập: ${esc(this.user)}</p>
+      <label for="u-n">Họ tên</label><input id="u-n" value="${esc(i.fullName)}"><label for="u-e">Email</label><input id="u-e" type="email" value="${esc(i.email)}">
+      <div style="margin-top:14px"><button class="pri" onclick="app.saveInfo()">Lưu thông tin</button></div></div>
+    <div class="card"><h2>Đổi mật khẩu</h2><label for="p-o">Mật khẩu cũ</label><input id="p-o" type="password"><label for="p-n">Mật khẩu mới</label><input id="p-n" type="password">
+      <div style="margin-top:14px"><button class="pri" onclick="app.savePass()">Đổi mật khẩu</button></div><div class="msg" id="msg"></div></div>`;
+  }
+  saveInfo() { this.um.update(this.user, x => { x.fullName = this.v('u-n').trim() || this.user; x.email = this.v('u-e').trim(); }); this.render(); this.say('Đã lưu thông tin.'); }
+  savePass() {
+    if (!this.um.login(this.user, this.v('p-o'))) return this.say('Mật khẩu cũ không đúng.');
+    if (!this.v('p-n')) return this.say('Mật khẩu mới không được để trống.');
+    this.um.update(this.user, x => x.password = this.v('p-n')); this.say('Đã đổi mật khẩu.');
+  }
+}
+const app = new App();
+</script>
+</body>
+</html>
