@@ -74,6 +74,3 @@ Nếu có thắc mắc, bạn mở một **Issue** ở tab Issues của repo, nh
 - Mật khẩu được lưu dạng văn bản thường, nên dự án chỉ phù hợp để **học tập và demo**, không dùng cho dữ liệu thật.
 - Mã nguồn được chia sẻ cho mục đích học tập.
 
-## Công cụ hỗ trợ
-
-Trong quá trình thực hiện, nhóm có sử dụng công cụ AI (Claude của Anthropic) để hỗ trợ viết mã nguồn ban đầu, tách chương trình thành các tệp `.h/.cpp`, tạo bản web minh họa và rà soát báo cáo. Nội dung này nên khớp với phần ghi nhận trong báo cáo nộp cho giảng viên.
